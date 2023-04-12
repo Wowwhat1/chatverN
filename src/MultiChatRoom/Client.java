@@ -6,14 +6,16 @@ import java.net.Socket;
 public class Client implements Runnable {
     private Socket client;
     private BufferedReader bufferedReader;
-    private BufferedWriter bufferedWriter;
+    private PrintWriter printWriter;
     private boolean done;
 
     @Override
     public void run() {
         try {
-            client = new Socket("localhost", 9999);
-            bufferedWriter = new BufferedWriter(new OutputStreamWriter(client.getOutputStream()));
+            System.out.println("Not connected");
+            client = new Socket("localhost", 8888);
+            System.out.println("Connected");
+            printWriter = new PrintWriter(client.getOutputStream(), true);
             bufferedReader = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
             InputHandler inputHandler = new InputHandler();
@@ -33,7 +35,7 @@ public class Client implements Runnable {
         done = true;
         try {
             bufferedReader.close();
-            bufferedWriter.close();
+            printWriter.close();
             if (!client.isClosed()) {
                 client.close();
             }
@@ -51,12 +53,11 @@ public class Client implements Runnable {
                 while (!done) {
                     String message = bufferedReader.readLine();
                     if (message.equals("/quit")) {
-                        bufferedWriter.write("/quit");
+                        printWriter.println("/quit");
                         bufferedReader.close();
                         shutdown();
                     } else {
-                        bufferedWriter.write(message);
-                        bufferedWriter.flush();
+                        printWriter.write(message);
                     }
                 }
             } catch (IOException e) {

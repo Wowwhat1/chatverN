@@ -22,10 +22,12 @@ public class Server implements Runnable {
     @Override
     public void run() {
         try {
-            serverSocket = new ServerSocket(9999);
+            serverSocket = new ServerSocket(8888);
             pool = Executors.newCachedThreadPool();
             while (!done) {
+                System.out.println("wait new client");
                 Socket client = serverSocket.accept();
+                System.out.println("New client arrive");
                 ConnectionHandler handler = new ConnectionHandler(client);
                 connections.add(handler);
                 pool.execute(handler);
@@ -61,7 +63,7 @@ public class Server implements Runnable {
     class ConnectionHandler implements Runnable {
         private Socket client;
         BufferedReader bufferedReader;
-        BufferedWriter bufferedWriter;
+        PrintWriter printWriter;
         private String username;
 
         public ConnectionHandler(Socket client) {
@@ -71,11 +73,10 @@ public class Server implements Runnable {
         @Override
         public void run() {
             try {
-                bufferedWriter = new BufferedWriter(new OutputStreamWriter(client.getOutputStream()));
+                printWriter = new PrintWriter(client.getOutputStream(), true);
                 bufferedReader = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
-                bufferedWriter.write("Please enter your username: ");
-                bufferedWriter.flush();
+                printWriter.write("Please enter your username: ");
                 username = bufferedReader.readLine();
                 System.out.println(username + " connected to the room!");
                 broadcastMessage(username + " joined the room!");
@@ -87,11 +88,9 @@ public class Server implements Runnable {
                             broadcastMessage(username + " renamed themselves to " + messageSplit[1]);
                             System.out.println(username + " renamed themselves to " + messageSplit[1]);
                             username = messageSplit[1];
-                            bufferedWriter.write("Successfully changed username to: " + username);
-                            bufferedWriter.flush();
+                            printWriter.write("Successfully changed username to: " + username);
                         } else {
-                            bufferedWriter.write("No new username provided!");
-                            bufferedWriter.flush();
+                            printWriter.write("No new username provided!");
                         }
                     } else if (message.startsWith("/quit")) {
                         shutdown();
@@ -106,20 +105,14 @@ public class Server implements Runnable {
         }
 
         public void sendMessage(String message) {
-            if (bufferedWriter != null) {
-                try {
-                    bufferedWriter.write(message);
-                    bufferedWriter.newLine();
-                    bufferedWriter.flush();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            if (printWriter != null) {
+                printWriter.write(message);
             }
         }
 
         public void shutdown() {
             try {
-                bufferedWriter.close();
+                printWriter.close();
                 bufferedReader.close();
                 if (!client.isClosed()) {
                     client.close();
